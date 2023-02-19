@@ -1,0 +1,5 @@
+CREATE TABLE last_retrieved (
+	id INTEGER PRIMARY KEY NOT NULL,
+	loc INTEGER NOT NULL,
+	retrieved_date TIMESTAMP NOT NULL
+);
