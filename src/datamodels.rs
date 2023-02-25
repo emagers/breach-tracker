@@ -5,7 +5,8 @@ use diesel::{prelude::*, AsExpression, sql_types::*, FromSqlRow, serialize::{sel
 #[derive(Debug, Clone, Copy, FromSqlRow, AsExpression, PartialEq)]
 #[diesel(sql_type = Integer)]
 pub enum State {
-	WA = 1
+	WA = 1,
+	OR = 2,
 }
 
 impl<DB> ToSql<Integer, DB> for State
@@ -15,7 +16,8 @@ where
 {
 	fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, DB>) -> serialize::Result {
 		match self {
-			State::WA => 1.to_sql(out)
+			State::WA => 1.to_sql(out),
+			State::OR => 2.to_sql(out),
 		}
 	}
 }
@@ -28,6 +30,7 @@ where
 	fn from_sql(bytes: backend::RawValue<DB>) -> deserialize::Result<Self> {
 		match i32::from_sql(bytes)? {
 			1 => Ok(State::WA),
+			2 => Ok(State::OR),
 			x => Err(format!("Unrecognized variant {}", x).into()),
 		}
 	}
@@ -162,7 +165,6 @@ pub struct LastRetrieved {
 #[derive(Debug, Insertable)]
 #[diesel(table_name = crate::schema::last_retrieved)]
 pub struct NewLastRetrieved {
-	pub id: i32,
 	pub loc: State,
 	pub retrieved_date: NaiveDateTime,
 }

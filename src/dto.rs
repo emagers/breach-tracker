@@ -3,13 +3,15 @@ use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum State {
-	WA = 1
+	WA = 1,
+	OR = 2,
 }
 
 impl From<crate::datamodels::State> for State {
 	fn from(value: crate::datamodels::State) -> Self {
 		match value {
-			crate::datamodels::State::WA => State::WA
+			crate::datamodels::State::WA => State::WA,
+			crate::datamodels::State::OR => State::OR,
 		}
 	}
 }
@@ -17,7 +19,8 @@ impl From<crate::datamodels::State> for State {
 impl From<State> for crate::datamodels::State {
 	fn from(value: State) -> Self {
 		match value {
-			State::WA => crate::datamodels::State::WA
+			State::WA => crate::datamodels::State::WA,
+			State::OR => crate::datamodels::State::OR,
 		}
 	}
 }
