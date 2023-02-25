@@ -9,6 +9,7 @@ pub trait Retriever {
 	async fn retrieve(&self, client: &Client, options: &RetrieverOptions) -> Result<Vec<Breach>, Box<dyn std::error::Error>>;
 }
 
+#[derive(Debug)]
 pub struct RetrieverOptions {
 	pub collect_until: NaiveDateTime
 }

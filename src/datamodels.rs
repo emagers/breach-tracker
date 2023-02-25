@@ -122,7 +122,7 @@ pub struct Classification {
 	pub classification_type: ClassificationType,
 }
 
-#[derive(Debug, Insertable)]
+#[derive(Debug, Insertable, Clone)]
 #[diesel(table_name = crate::schema::classification)]
 pub struct NewClassification {
 	pub breach_data_id: i32,
@@ -141,7 +141,7 @@ pub struct BreachData {
 	pub loc: State
 }
 
-#[derive(Debug, Insertable)]
+#[derive(Debug, Insertable, Clone)]
 #[diesel(table_name = crate::schema::breach_data)]
 pub struct NewBreachData {
 	pub date_reported: NaiveDateTime,
@@ -151,9 +151,9 @@ pub struct NewBreachData {
 	pub loc: State
 }
 
-#[derive(Queryable, Debug, PartialEq, Identifiable)]
+#[derive(Queryable, Debug, PartialEq, Identifiable, Copy, Clone)]
 #[diesel(table_name = crate::schema::last_retrieved)]
-pub struct LastReceived {
+pub struct LastRetrieved {
 	pub id: i32,
 	pub loc: State,
 	pub retrieved_date: NaiveDateTime,
@@ -161,7 +161,7 @@ pub struct LastReceived {
 
 #[derive(Debug, Insertable)]
 #[diesel(table_name = crate::schema::last_retrieved)]
-pub struct NewLastReceived {
+pub struct NewLastRetrieved {
 	pub id: i32,
 	pub loc: State,
 	pub retrieved_date: NaiveDateTime,

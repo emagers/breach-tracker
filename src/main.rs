@@ -1,4 +1,4 @@
-use chrono::{NaiveDate};
+use chrono::{NaiveDate, Days};
 
 pub mod retrievers;
 pub mod datamodels;
@@ -6,30 +6,80 @@ pub mod dto;
 pub mod schema;
 pub mod data;
 
-use data::{establish_connection, create_breach_data, get_breaches};
+use data::{establish_connection, create_breach_data, get_breaches, get_last_retrieved};
+use datamodels::State;
+use diesel::SqliteConnection;
 use retrievers::{wa_retriever::WaRetriever, Retriever};
 use serde_json::json;
 
+use crate::{datamodels::NewLastRetrieved, data::insert_last_retrieved};
+
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), ()> {
 	let conn = &mut establish_connection();
-	// let rec = WaRetriever{};
 
-	// let client = reqwest::Client::new();
+	let result = process_washington(conn).await;
 
-	// let options = retrievers::RetrieverOptions {
-	// 	collect_until: NaiveDate::from_ymd_opt(1970, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap()
-	// };
+	match result {
+		Ok(_) => Ok(()),
+		Err(err) => { println!("{:?}", err); return Err(()); }
+	}
+}
 
-	// let breaches = rec.retrieve(&client, &options).await?;
+async fn process_washington(conn: &mut SqliteConnection) -> Result<(), Box<dyn std::error::Error>> {
+	let rec = WaRetriever{};
 
-	// for breach in breaches {
-	// 	let _ = create_breach_data(conn, &breach);
-	// }
+	let client = reqwest::Client::new();
 
-	let b2 = get_breaches(conn);
+	let last_recieved = get_last_retrieved(conn, State::WA)?;
 
-	println!("{}", json!(b2?));
+	let options = retrievers::RetrieverOptions {
+		collect_until: match last_recieved {
+			Some(lr) => lr.retrieved_date.checked_sub_days(Days::new(1)).unwrap(),
+			None => NaiveDate::from_ymd_opt(1970, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap()
+		}
+	};
+
+	println!("Retrieving WA data breaches with options {:?}", options);
+
+	let breaches = rec.retrieve(&client, &options).await?;
+
+	if breaches.len() > 0 {
+		let mut inserted_breaches_count = 0;
+		for breach in &breaches {
+			let res = create_breach_data(conn, &breach);
+
+			if let Ok((i, c)) = res {
+				inserted_breaches_count += i;
+				if i == 0 && c > 0 {
+					println!("Created {} new classification(s) for {:?}", c, breach);
+				}
+			}
+			else {
+				println!("Error storing {:?}: {:?}", breach, res);
+			}
+		}
+
+		println!("Inserted total of {} breaches", inserted_breaches_count);
+
+		if inserted_breaches_count > 0 {
+			let last_retrieved = NewLastRetrieved {
+				id: 0,
+				loc: State::WA,
+				retrieved_date: breaches.first().unwrap().date_reported
+			};
+
+			let lr_result = insert_last_retrieved(conn, last_retrieved);
+
+			println!("{}", json!(lr_result));
+		}
+		else {
+			println!("No new breaches to insert");
+		}
+	}
+	else {
+		println!("No new breaches to insert");
+	}
 
 	Ok(())
 }
