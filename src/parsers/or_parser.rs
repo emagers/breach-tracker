@@ -36,11 +36,24 @@ impl OrParser {
 		let mut date_of_breaches = vec!();
 		let mut date_reported = None;
 		let mut organization_name = None;
+		let mut link: Option<String> = None;
 
 		if let Some(field) = row_it.next() {
 			let mut field_it = field.split(">");
 			_ = field_it.next();
-			_ = field_it.next();
+
+			// link starts here
+			{
+				let a = field_it.next().unwrap();
+				let mut href_it = a.split("href=\"");
+				let _ = href_it.next();
+
+				let link_raw = href_it.next().unwrap();
+				let mut link_raw_it = link_raw.split("\"");
+				let l = link_raw_it.next().unwrap().to_string();
+
+				link = Some(format!("{}{}", "https://justice.oregon.gov", l));
+			}
 
 			let org = field_it.next().unwrap();
 			let mut org_it = org.split("<");
@@ -105,6 +118,7 @@ impl OrParser {
 			organization_name: organization_name.unwrap().to_string(),
 			affected_count: 0,
 			loc: State::OR,
+			link: link.clone(),
 			leaked_info: vec!()
 		}).collect())
 	}

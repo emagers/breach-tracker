@@ -144,7 +144,8 @@ pub struct BreachData {
 	pub organization_name: String,
 	pub date_of_breach: NaiveDateTime,
 	pub affected_count: i32,
-	pub loc: State
+	pub loc: State,
+	pub link: Option<String>,
 }
 
 #[derive(Debug, Insertable, Clone)]
@@ -154,7 +155,8 @@ pub struct NewBreachData {
 	pub organization_name: String,
 	pub date_of_breach: NaiveDateTime,
 	pub affected_count: i32,
-	pub loc: State
+	pub loc: State,
+	pub link: Option<String>,
 }
 
 #[derive(Queryable, Debug, PartialEq, Identifiable, Copy, Clone)]

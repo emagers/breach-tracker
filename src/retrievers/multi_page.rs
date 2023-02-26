@@ -18,8 +18,7 @@ impl Retriever for MultiPage {
 
 			let mut brs = parser.parse_page(&text)?;
 
-			let earliest_date = brs.last().unwrap().date_reported;
-			continue_processing = brs.len() > 0 && earliest_date > options.collect_until;
+			continue_processing = brs.len() > 0 && brs.last().unwrap().date_reported > options.collect_until;
 
 			breaches.append(&mut brs);
 

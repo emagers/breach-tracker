@@ -1,0 +1,2 @@
+ALTER TABLE breach_data
+ADD COLUMN link TEXT;

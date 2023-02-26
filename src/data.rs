@@ -21,7 +21,8 @@ pub fn create_breach_data(conn: &mut SqliteConnection, data: &crate::dto::Breach
 		organization_name: data.organization_name.clone(),
 		date_of_breach: data.date_of_breach,
 		affected_count: data.affected_count,
-		loc: data.loc.into()
+		loc: data.loc.into(),
+		link: data.link.clone(),
 	};
 
 	let mut classes: Vec<NewClassification> = data.leaked_info.iter().map(|r| crate::datamodels::NewClassification {

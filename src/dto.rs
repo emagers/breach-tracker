@@ -113,6 +113,7 @@ pub struct Breach {
 	pub date_of_breach: NaiveDateTime,
 	pub affected_count: i32,
 	pub loc: State,
+	pub link: Option<String>,
 	pub leaked_info: Vec<ClassificationType>
 }
 
@@ -125,6 +126,7 @@ impl From<(&crate::datamodels::BreachData, Vec<&crate::datamodels::Classificatio
 			date_of_breach: value.0.date_of_breach,
 			affected_count: value.0.affected_count,
 			loc: value.0.loc.into(),
+			link: value.0.link.clone(),
 			leaked_info: value.1.iter().map(|r|
 				(&r.classification_type, r.content.as_str()).into()
 				).collect()

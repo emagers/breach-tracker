@@ -23,8 +23,21 @@ async fn main() -> Result<(), ()> {
 
 	let conn = &mut establish_connection();
 
-	let result = process_california(conn).await;
-	//let result = process_washington(conn).await;
+	// let result = process_california(conn).await;
+
+	// match result {
+	// 	Ok(_) => {},
+	// 	Err(err) => { println!("{:?}", err); }
+	// }
+
+	// let result = process_oregon(conn).await;
+
+	// match result {
+	// 	Ok(_) => {},
+	// 	Err(err) => { println!("{:?}", err); }
+	// }
+
+	let result = process_washington(conn).await;
 
 	match result {
 		Ok(_) => Ok(()),

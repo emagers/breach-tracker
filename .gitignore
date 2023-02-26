@@ -17,4 +17,4 @@ Cargo.lock
 .env
 *.sqlite3
 *.json
-*.sql
+sample.sql

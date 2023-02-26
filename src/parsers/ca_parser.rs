@@ -36,13 +36,23 @@ impl CaParser {
 		let mut date_of_breaches = vec!();
 		let mut date_reported = None;
 		let mut organization_name = None;
+		let mut link: Option<String> = None;
 
 		if let Some(field) = row_it.next() {
 			let mut field_it = field.split(">");
 			_ = field_it.next();
+			_ = field_it.next();
+
 			// this is the point of the link
-			_ = field_it.next();
-			_ = field_it.next();
+			{
+				let a = field_it.next().unwrap();
+				let mut link_href_it = a.split("href=\"");
+				_ = link_href_it.next();
+
+				let link_cont = link_href_it.next().unwrap();
+				let mut link_cont_it = link_cont.split("\"");
+				link = Some(link_cont_it.next().unwrap().to_string());
+			}
 
 			let org = field_it.next().unwrap();
 			let mut org_it = org.split("<");
@@ -95,6 +105,7 @@ impl CaParser {
 			organization_name: organization_name.unwrap().to_string(),
 			affected_count: 0,
 			loc: State::CA,
+			link: link.clone(),
 			leaked_info: vec!()
 		}).collect())
 	}

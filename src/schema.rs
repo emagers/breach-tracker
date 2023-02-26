@@ -8,6 +8,7 @@ diesel::table! {
         date_of_breach -> Timestamp,
         affected_count -> Integer,
         loc -> Integer,
+        link -> Nullable<Text>,
     }
 }
 
