@@ -5,6 +5,7 @@ use serde::{Serialize, Deserialize};
 pub enum State {
 	WA = 1,
 	OR = 2,
+	CA = 3,
 }
 
 impl From<crate::datamodels::State> for State {
@@ -12,6 +13,7 @@ impl From<crate::datamodels::State> for State {
 		match value {
 			crate::datamodels::State::WA => State::WA,
 			crate::datamodels::State::OR => State::OR,
+			crate::datamodels::State::CA => State::CA,
 		}
 	}
 }
@@ -21,6 +23,7 @@ impl From<State> for crate::datamodels::State {
 		match value {
 			State::WA => crate::datamodels::State::WA,
 			State::OR => crate::datamodels::State::OR,
+			State::CA => crate::datamodels::State::CA,
 		}
 	}
 }

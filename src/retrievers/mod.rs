@@ -1,5 +1,6 @@
 pub mod wa;
 pub mod or;
+pub mod ca;
 
 use crate::dto::Breach;
 use std::{error::Error, collections::HashMap};
@@ -18,13 +19,9 @@ pub struct RetrieverOptions {
 }
 
 async fn invoke(client: &Client, url: &str, headers: HeaderMap<HeaderValue>) -> Result<String, Box<dyn Error>> {
-	let builder = client.get(url)
-		.headers(headers);
-
-	println!("{:?}", builder);
-
-
-	let body = builder.send()
+	let body = client.get(url)
+		.headers(headers)
+		.send()
 		.await?
 		.text()
 		.await?;

@@ -12,13 +12,16 @@ use diesel::SqliteConnection;
 use retrievers::{wa::WaRetriever, Retriever};
 use serde_json::json;
 
-use crate::{datamodels::NewLastRetrieved, data::insert_last_retrieved, retrievers::or::OrRetriever};
+use crate::{datamodels::NewLastRetrieved, data::insert_last_retrieved, retrievers::{or::OrRetriever, ca::CaRetriever}};
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {
+	// CA does not support OpenSSL3 so we need to use a custom config that allows legacy redirects
+	std::env::set_var("OPENSSL_CONF", "./openssl_temp.cnf");
+
 	let conn = &mut establish_connection();
 
-	let result = process_oregon(conn).await;
+	let result = process_california(conn).await;
 	//let result = process_washington(conn).await;
 
 	match result {
@@ -89,7 +92,7 @@ async fn process_oregon(conn: &mut SqliteConnection) -> Result<(), Box<dyn std::
 
 	let client = reqwest::Client::new();
 
-	let last_recieved = get_last_retrieved(conn, State::WA)?;
+	let last_recieved = get_last_retrieved(conn, State::OR)?;
 
 	let options = retrievers::RetrieverOptions {
 		collect_until: match last_recieved {
@@ -136,6 +139,63 @@ async fn process_oregon(conn: &mut SqliteConnection) -> Result<(), Box<dyn std::
 	}
 	else {
 		println!("No new breaches to insert");
+	}
+
+	Ok(())
+}
+
+async fn process_california(conn: &mut SqliteConnection) -> Result<(), Box<dyn std::error::Error>> {
+	let rec = CaRetriever{};
+
+	let client = reqwest::Client::new();
+
+	let last_recieved = get_last_retrieved(conn, State::CA)?;
+
+	let options = retrievers::RetrieverOptions {
+		collect_until: match last_recieved {
+			Some(lr) => lr.retrieved_date.checked_sub_days(Days::new(1)).unwrap(),
+			None => NaiveDate::from_ymd_opt(1970, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap()
+		}
+	};
+
+	println!("Retrieving CA data breaches with options {:?}", options);
+
+	let breaches = rec.retrieve(&client, &options).await?;
+
+	if breaches.len() > 0 {
+		let mut inserted_breaches_count = 0;
+		for breach in &breaches {
+			let res = create_breach_data(conn, &breach);
+
+			if let Ok((i, c)) = res {
+				inserted_breaches_count += i;
+				if i == 0 && c > 0 {
+					println!("Created {} new classification(s) for {:?}", c, breach);
+				}
+			}
+			else {
+				println!("Error storing {:?}: {:?}", breach, res);
+			}
+		}
+
+		println!("Inserted total of {} breaches", inserted_breaches_count);
+
+		if inserted_breaches_count > 0 {
+			let last_retrieved = NewLastRetrieved {
+				loc: State::OR,
+				retrieved_date: breaches.first().unwrap().date_reported
+			};
+
+			let lr_result = insert_last_retrieved(conn, last_retrieved);
+
+			println!("{}", json!(lr_result));
+		}
+		else {
+			println!("No new breaches to insert in CA");
+		}
+	}
+	else {
+		println!("No new breaches to insert in CA");
 	}
 
 	Ok(())

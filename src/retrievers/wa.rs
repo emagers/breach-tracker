@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use chrono::{NaiveDate, Utc, NaiveDateTime};
 use reqwest::{Client, header::{HeaderMap, HeaderValue, USER_AGENT}};
 use super::{Retriever, RetrieverOptions, invoke};

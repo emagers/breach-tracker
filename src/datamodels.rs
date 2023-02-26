@@ -7,6 +7,7 @@ use diesel::{prelude::*, AsExpression, sql_types::*, FromSqlRow, serialize::{sel
 pub enum State {
 	WA = 1,
 	OR = 2,
+	CA = 3,
 }
 
 impl<DB> ToSql<Integer, DB> for State
@@ -18,6 +19,7 @@ where
 		match self {
 			State::WA => 1.to_sql(out),
 			State::OR => 2.to_sql(out),
+			State::CA => 3.to_sql(out),
 		}
 	}
 }
@@ -31,6 +33,7 @@ where
 		match i32::from_sql(bytes)? {
 			1 => Ok(State::WA),
 			2 => Ok(State::OR),
+			3 => Ok(State::CA),
 			x => Err(format!("Unrecognized variant {}", x).into()),
 		}
 	}
