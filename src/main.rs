@@ -5,14 +5,16 @@ pub mod datamodels;
 pub mod dto;
 pub mod schema;
 pub mod data;
+pub mod parsers;
 
 use data::{establish_connection, create_breach_data, get_last_retrieved};
 use datamodels::State;
 use diesel::SqliteConnection;
-use retrievers::{wa::WaRetriever, Retriever};
+use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, USER_AGENT};
+use retrievers::{multi_page::MultiPage, single_page::SinglePage, Retriever};
 use serde_json::json;
 
-use crate::{datamodels::NewLastRetrieved, data::insert_last_retrieved, retrievers::{or::OrRetriever, ca::CaRetriever}};
+use crate::{datamodels::NewLastRetrieved, data::insert_last_retrieved, parsers::{ca_parser::CaParser, or_parser::OrParser, wa_parser::WaParser}};
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {
@@ -30,8 +32,17 @@ async fn main() -> Result<(), ()> {
 	}
 }
 
+fn create_headers() -> HeaderMap<HeaderValue> {
+	let mut headers = HeaderMap::new();
+
+	headers.insert(ACCEPT, "*/*".parse().unwrap());
+	headers.insert(USER_AGENT, "breach_tracker".parse().unwrap());
+
+	headers
+}
+
 async fn process_washington(conn: &mut SqliteConnection) -> Result<(), Box<dyn std::error::Error>> {
-	let rec = WaRetriever{};
+	let rec = MultiPage{};
 
 	let client = reqwest::Client::new();
 
@@ -41,12 +52,14 @@ async fn process_washington(conn: &mut SqliteConnection) -> Result<(), Box<dyn s
 		collect_until: match last_recieved {
 			Some(lr) => lr.retrieved_date.checked_sub_days(Days::new(1)).unwrap(),
 			None => NaiveDate::from_ymd_opt(1970, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap()
-		}
+		},
+		base_url: "https://www.atg.wa.gov/data-breach-notifications?page=".to_string(),
+		headers: create_headers()
 	};
 
 	println!("Retrieving WA data breaches with options {:?}", options);
 
-	let breaches = rec.retrieve(&client, &options).await?;
+	let breaches = rec.retrieve(&client, Box::new(WaParser{}), &options).await?;
 
 	if breaches.len() > 0 {
 		let mut inserted_breaches_count = 0;
@@ -88,7 +101,7 @@ async fn process_washington(conn: &mut SqliteConnection) -> Result<(), Box<dyn s
 }
 
 async fn process_oregon(conn: &mut SqliteConnection) -> Result<(), Box<dyn std::error::Error>> {
-	let rec = OrRetriever{};
+	let rec = SinglePage{};
 
 	let client = reqwest::Client::new();
 
@@ -98,12 +111,14 @@ async fn process_oregon(conn: &mut SqliteConnection) -> Result<(), Box<dyn std::
 		collect_until: match last_recieved {
 			Some(lr) => lr.retrieved_date.checked_sub_days(Days::new(1)).unwrap(),
 			None => NaiveDate::from_ymd_opt(1970, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap()
-		}
+		},
+		base_url: "https://justice.oregon.gov/consumer/databreach/".to_string(),
+		headers: create_headers()
 	};
 
 	println!("Retrieving OR data breaches with options {:?}", options);
 
-	let breaches = rec.retrieve(&client, &options).await?;
+	let breaches = rec.retrieve(&client, Box::new(OrParser{}), &options).await?;
 
 	if breaches.len() > 0 {
 		let mut inserted_breaches_count = 0;
@@ -145,7 +160,7 @@ async fn process_oregon(conn: &mut SqliteConnection) -> Result<(), Box<dyn std::
 }
 
 async fn process_california(conn: &mut SqliteConnection) -> Result<(), Box<dyn std::error::Error>> {
-	let rec = CaRetriever{};
+	let rec = SinglePage{};
 
 	let client = reqwest::Client::new();
 
@@ -155,12 +170,14 @@ async fn process_california(conn: &mut SqliteConnection) -> Result<(), Box<dyn s
 		collect_until: match last_recieved {
 			Some(lr) => lr.retrieved_date.checked_sub_days(Days::new(1)).unwrap(),
 			None => NaiveDate::from_ymd_opt(1970, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap()
-		}
+		},
+		base_url: "https://oag.ca.gov/privacy/databreach/list".to_string(),
+		headers: create_headers()
 	};
 
 	println!("Retrieving CA data breaches with options {:?}", options);
 
-	let breaches = rec.retrieve(&client, &options).await?;
+	let breaches = rec.retrieve(&client, Box::new(CaParser{}), &options).await?;
 
 	if breaches.len() > 0 {
 		let mut inserted_breaches_count = 0;

@@ -1,27 +1,19 @@
-use chrono::{NaiveDate, Utc, NaiveDateTime};
-use reqwest::{Client, header::{HeaderMap, HeaderValue, USER_AGENT}};
-use super::{Retriever, RetrieverOptions, invoke};
-use crate::{dto::{Breach, ClassificationType, State, Sensitivity}};
-use async_trait::async_trait;
+use chrono::{NaiveDate, NaiveDateTime};
+use crate::dto::{ClassificationType, Sensitivity, Breach, State};
+use super::Parser;
 
-const BASE_URL: &str = "https://www.atg.wa.gov/data-breach-notifications?page=";
+pub struct WaParser{}
 
-pub struct WaRetriever {
-
-}
-
-impl WaRetriever {
-	fn parse_page(&self, text: &str) -> Result<(Vec<Breach>, NaiveDateTime), Box<dyn std::error::Error>> {
+impl WaParser {
+	fn parse_body(text: &str) -> Result<Vec<Breach>, Box<dyn std::error::Error>> {
 		let mut content_it = text.split("<tbody>");
 		_ = content_it.next();
 		_ = content_it.next();
 		let content = content_it.next();
 
-		let mut oldest_date = Utc::now().naive_local();
-
 		let mut breaches = vec!();
 		match content {
-			None => return Ok((breaches, oldest_date)),
+			None => return Ok(breaches),
 			Some(rows_content) => {
 				let mut rows_it = rows_content.split("</tbody>");
 				if let Some(rows) = rows_it.next() {
@@ -29,10 +21,7 @@ impl WaRetriever {
 					_ = row_it.next();
 
 					while let Some(row) = row_it.next() {
-						let breach = self.parse_breach(row)?;
-						if breach.date_reported < oldest_date {
-							oldest_date = breach.date_reported;
-						}
+						let breach = WaParser::parse_breach(row)?;
 
 						breaches.push(breach);
 					}
@@ -40,10 +29,10 @@ impl WaRetriever {
 			}
 		}
 
-		Ok((breaches, oldest_date))
+		Ok(breaches)
 	}
 
-	fn parse_breach(&self, text: &str) -> Result<Breach, Box<dyn std::error::Error>> {
+	fn parse_breach(text: &str) -> Result<Breach, Box<dyn std::error::Error>> {
 		let mut row_it = text.split("</td>");
 
 		let mut date_reported = None;
@@ -112,7 +101,7 @@ impl WaRetriever {
 		if let Some(field) = row_it.next() {
 			let mut field_it = field.split(">");
 			_ = field_it.next();
-			leaked_info = self.parse_classifications(field_it.next().unwrap().trim());
+			leaked_info = WaParser::parse_classifications(field_it.next().unwrap().trim());
 		}
 
 		if date_reported.is_none() || date_of_breach.is_none() || organization_name.is_none() || affected_count.is_none() {
@@ -130,7 +119,7 @@ impl WaRetriever {
 		})
 	}
 
-	fn parse_classifications(&self, text: &str) -> Vec<ClassificationType> {
+	fn parse_classifications(text: &str) -> Vec<ClassificationType> {
 		let mut classifications = vec!();
 		let mut classification_it = text.split(";");
 
@@ -167,33 +156,10 @@ impl WaRetriever {
 
 		classifications
 	}
-
-	fn create_headers() -> HeaderMap<HeaderValue> {
-		let mut headers = HeaderMap::new();
-		headers.insert(USER_AGENT, "breach_tracker".parse().unwrap());
-		headers
-	}
 }
 
-#[async_trait]
-impl Retriever for WaRetriever {
-	async fn retrieve(&self, client: &Client, options: &RetrieverOptions) -> Result<Vec<Breach>, Box<dyn std::error::Error>> {
-		let mut page = 0;
-		let mut continue_processing = true;
-
-		let mut breaches = vec!();
-
-		while continue_processing {
-			let text = invoke(client, &format!("{}{}", BASE_URL, page), WaRetriever::create_headers()).await?;
-
-			let (mut brs, earliest_date) = self.parse_page(&text)?;
-			continue_processing = brs.len() > 0 && earliest_date > options.collect_until;
-
-			breaches.append(&mut brs);
-
-			page += 1;
-		}
-
-		Ok(breaches)
+impl Parser for WaParser {
+	fn parse_page(&self, page: &str) -> Result<Vec<Breach>, Box<dyn std::error::Error>> {
+		WaParser::parse_body(page)
 	}
 }

@@ -1,17 +1,11 @@
 use chrono::{NaiveDate, NaiveDateTime};
-use reqwest::{Client, header::{HeaderMap, HeaderValue, ACCEPT, USER_AGENT, HOST}};
-use super::{Retriever, RetrieverOptions, invoke};
-use crate::{dto::{Breach, State}};
-use async_trait::async_trait;
+use crate::dto::{Breach, State};
+use super::Parser;
 
-const BASE_URL: &str = "https://justice.oregon.gov/consumer/databreach/";
+pub struct OrParser { }
 
-pub struct OrRetriever {
-
-}
-
-impl OrRetriever {
-	fn parse_page(&self, text: &str) -> Result<Vec<Breach>, Box<dyn std::error::Error>> {
+impl OrParser {
+	fn parse_body(text: &str) -> Result<Vec<Breach>, Box<dyn std::error::Error>> {
 		let mut content_it = text.split("<tbody>");
 		_ = content_it.next();
 		let content = content_it.next();
@@ -26,7 +20,7 @@ impl OrRetriever {
 					_ = row_it.next();
 
 					while let Some(row) = row_it.next() {
-						let mut breach = self.parse_breach(row)?;
+						let mut breach = OrParser::parse_breach(row)?;
 						breaches.append(&mut breach);
 					}
 				}
@@ -36,7 +30,7 @@ impl OrRetriever {
 		Ok(breaches)
 	}
 
-	fn parse_breach(&self, text: &str) -> Result<Vec<Breach>, Box<dyn std::error::Error>> {
+	fn parse_breach(text: &str) -> Result<Vec<Breach>, Box<dyn std::error::Error>> {
 		let mut row_it = text.split("</td>");
 
 		let mut date_of_breaches = vec!();
@@ -114,29 +108,10 @@ impl OrRetriever {
 			leaked_info: vec!()
 		}).collect())
 	}
-
-	fn create_headers() -> HeaderMap<HeaderValue> {
-		let mut headers = HeaderMap::new();
-
-		headers.insert(ACCEPT, "*/*".parse().unwrap());
-		headers.insert(USER_AGENT, "breach_tracker".parse().unwrap());
-		headers.insert(HOST, "justice.oregon.gov".parse().unwrap());
-
-		headers
-	}
 }
 
-#[async_trait]
-impl Retriever for OrRetriever {
-	async fn retrieve(&self, client: &Client, _options: &RetrieverOptions) -> Result<Vec<Breach>, Box<dyn std::error::Error>> {
-		let mut breaches = vec!();
-
-		let text = invoke(client, &format!("{}", BASE_URL), OrRetriever::create_headers()).await?;
-
-		let mut brs = self.parse_page(&text)?;
-
-		breaches.append(&mut brs);
-
-		Ok(breaches)
+impl Parser for OrParser {
+	fn parse_page(&self, page: &str) -> Result<Vec<Breach>, Box<dyn std::error::Error>> {
+		OrParser::parse_body(page)
 	}
 }
