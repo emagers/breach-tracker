@@ -1,4 +1,4 @@
-use chrono::{NaiveDate, NaiveDateTime};
+use chrono::NaiveDateTime;
 use crate::dto::{Breach, State};
 use super::Parser;
 
@@ -33,7 +33,7 @@ impl CaParser {
 	fn parse_breach(text: &str) -> Result<Vec<Breach>, Box<dyn std::error::Error>> {
 		let mut row_it = text.split("</td>");
 
-		let mut date_of_breaches = vec!();
+		let mut date_of_breaches: Vec<Option<NaiveDateTime>> = vec!();
 		let mut date_reported = None;
 		let mut organization_name = None;
 		let mut link: Option<String> = None;
@@ -66,7 +66,7 @@ impl CaParser {
 			let date_str = field_it.next();
 			if let Some(date_str) = date_str {
 				if date_str.contains("n/a") {
-					date_of_breaches.push(NaiveDate::from_ymd_opt(-4, 2, 29).unwrap().and_hms_opt(0, 0, 0).unwrap());
+					date_of_breaches.push(None);
 				}
 				else {
 					let mut content_it = date_str.split("content=\"");
@@ -75,12 +75,12 @@ impl CaParser {
 					while let Some(content) = content_it.next() {
 						let mut date_it = content.split("\"");
 						let date = date_it.next().unwrap();
-						date_of_breaches.push(NaiveDateTime::parse_from_str(&date, "%+").unwrap());
+						date_of_breaches.push(Some(NaiveDateTime::parse_from_str(&date, "%+").unwrap()));
 					}
 				}
 			}
 			else {
-				date_of_breaches.push(NaiveDate::from_ymd_opt(-4, 2, 29).unwrap().and_hms_opt(0, 0, 0).unwrap());
+				date_of_breaches.push(None);
 			}
 		}
 
@@ -103,7 +103,7 @@ impl CaParser {
 			date_reported: date_reported.unwrap(),
 			date_of_breach: dob.clone(),
 			organization_name: organization_name.unwrap().to_string(),
-			affected_count: 0,
+			affected_count: None,
 			loc: State::CA,
 			link: link.clone(),
 			leaked_info: vec!()

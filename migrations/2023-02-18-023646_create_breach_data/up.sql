@@ -2,8 +2,8 @@ CREATE TABLE breach_data (
 	id INTEGER PRIMARY KEY NOT NULL,
 	date_reported TIMESTAMP NOT NULL,
 	organization_name TEXT NOT NULL,
-	date_of_breach TIMESTAMP NOT NULL,
-	affected_count INTEGER NOT NULL,
+	date_of_breach TIMESTAMP,
+	affected_count INTEGER,
 	loc INTEGER NOT NULL
 );
 

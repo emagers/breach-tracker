@@ -5,8 +5,8 @@ diesel::table! {
         id -> Integer,
         date_reported -> Timestamp,
         organization_name -> Text,
-        date_of_breach -> Timestamp,
-        affected_count -> Integer,
+        date_of_breach -> Nullable<Timestamp>,
+        affected_count -> Nullable<Integer>,
         loc -> Integer,
         link -> Nullable<Text>,
     }

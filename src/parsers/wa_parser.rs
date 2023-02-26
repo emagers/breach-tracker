@@ -1,4 +1,4 @@
-use chrono::{NaiveDate, NaiveDateTime};
+use chrono::NaiveDateTime;
 use crate::dto::{ClassificationType, Sensitivity, Breach, State};
 use super::Parser;
 
@@ -88,7 +88,7 @@ impl WaParser {
 				date_of_breach = Some(NaiveDateTime::parse_from_str(&(b.to_string() + " 00:00:00 +00:00"), "%m/%d/%Y %H:%M:%S %z").unwrap());
 			}
 			else {
-				date_of_breach = NaiveDate::from_ymd_opt(-4, 2, 29).unwrap().and_hms_opt(0, 0, 0);
+				date_of_breach = None;
 			}
 		}
 
@@ -105,9 +105,6 @@ impl WaParser {
 					if let Ok(i) = parsed {
 						affected_count = Some(i);
 					}
-					else {
-						println!("{}", count);
-					}
 				}
 			}
 		}
@@ -118,16 +115,16 @@ impl WaParser {
 			leaked_info = WaParser::parse_classifications(field_it.next().unwrap().trim());
 		}
 
-		if date_reported.is_none() || date_of_breach.is_none() || organization_name.is_none() || affected_count.is_none() {
+		if date_reported.is_none() || organization_name.is_none() || affected_count.is_none() {
 			return Err(format!("WA parsing failure {}", text).into());
 		}
 
 		Ok(Breach {
 			id: 0,
 			date_reported: date_reported.unwrap(),
-			date_of_breach: date_of_breach.unwrap(),
+			date_of_breach: date_of_breach,
 			organization_name: organization_name.unwrap().to_string(),
-			affected_count: affected_count.unwrap(),
+			affected_count: affected_count,
 			loc: State::WA,
 			link,
 			leaked_info

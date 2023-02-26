@@ -142,8 +142,8 @@ pub struct BreachData {
 	pub id: i32,
 	pub date_reported: NaiveDateTime,
 	pub organization_name: String,
-	pub date_of_breach: NaiveDateTime,
-	pub affected_count: i32,
+	pub date_of_breach: Option<NaiveDateTime>,
+	pub affected_count: Option<i32>,
 	pub loc: State,
 	pub link: Option<String>,
 }
@@ -153,8 +153,8 @@ pub struct BreachData {
 pub struct NewBreachData {
 	pub date_reported: NaiveDateTime,
 	pub organization_name: String,
-	pub date_of_breach: NaiveDateTime,
-	pub affected_count: i32,
+	pub date_of_breach: Option<NaiveDateTime>,
+	pub affected_count: Option<i32>,
 	pub loc: State,
 	pub link: Option<String>,
 }

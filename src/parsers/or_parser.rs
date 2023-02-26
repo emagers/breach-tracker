@@ -1,4 +1,4 @@
-use chrono::{NaiveDate, NaiveDateTime};
+use chrono::NaiveDateTime;
 use crate::dto::{Breach, State};
 use super::Parser;
 
@@ -33,7 +33,7 @@ impl OrParser {
 	fn parse_breach(text: &str) -> Result<Vec<Breach>, Box<dyn std::error::Error>> {
 		let mut row_it = text.split("</td>");
 
-		let mut date_of_breaches = vec!();
+		let mut date_of_breaches: Vec<Option<NaiveDateTime>> = vec!();
 		let mut date_reported = None;
 		let mut organization_name = None;
 		let mut link: Option<String> = None;
@@ -70,7 +70,7 @@ impl OrParser {
 				let b = date_str_it.next().unwrap().trim();
 
 				if b == "" {
-					date_of_breaches.push(NaiveDate::from_ymd_opt(-4, 2, 29).unwrap().and_hms_opt(0, 0, 0).unwrap());
+					date_of_breaches.push(None);
 				}
 				else {
 					if b.contains(",") {
@@ -79,21 +79,21 @@ impl OrParser {
 						while let Some(one_date) = b_it.next() {
 							if one_date.len() >= 10 {
 								let date = one_date.trim().chars().take(10).collect::<String>();
-								date_of_breaches.push(NaiveDateTime::parse_from_str(&(date + " 00:00:00 +00:00"), "%m/%d/%Y %H:%M:%S %z").unwrap());
+								date_of_breaches.push(Some(NaiveDateTime::parse_from_str(&(date + " 00:00:00 +00:00"), "%m/%d/%Y %H:%M:%S %z").unwrap()));
 							}
 							else if one_date.len() < 10 {
-								date_of_breaches.push(NaiveDate::from_ymd_opt(-4, 2, 29).unwrap().and_hms_opt(0, 0, 0).unwrap());
+								date_of_breaches.push(None);
 							}
 						}
 					}
 					else {
 						let date = b.chars().take(10).collect::<String>();
-						date_of_breaches.push(NaiveDateTime::parse_from_str(&(date + " 00:00:00 +00:00"), "%m/%d/%Y %H:%M:%S %z").unwrap());
+						date_of_breaches.push(Some(NaiveDateTime::parse_from_str(&(date + " 00:00:00 +00:00"), "%m/%d/%Y %H:%M:%S %z").unwrap()));
 					}
 				}
 			}
 			else {
-				date_of_breaches.push(NaiveDate::from_ymd_opt(-4, 2, 29).unwrap().and_hms_opt(0, 0, 0).unwrap());
+				date_of_breaches.push(None);
 			}
 		}
 
@@ -116,7 +116,7 @@ impl OrParser {
 			date_reported: date_reported.unwrap(),
 			date_of_breach: dob.clone(),
 			organization_name: organization_name.unwrap().to_string(),
-			affected_count: 0,
+			affected_count: None,
 			loc: State::OR,
 			link: link.clone(),
 			leaked_info: vec!()
