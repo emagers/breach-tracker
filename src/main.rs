@@ -37,7 +37,9 @@ async fn main() -> Result<(), ()> {
 	// 	Err(err) => { println!("{:?}", err); }
 	// }
 
-	let result = process_washington(conn).await;
+	//let result = process_maryland(conn).await;
+
+	let result = process_hawaii(conn).await;
 
 	match result {
 		Ok(_) => Ok(()),
@@ -212,7 +214,7 @@ async fn process_california(conn: &mut SqliteConnection) -> Result<(), Box<dyn s
 
 		if inserted_breaches_count > 0 {
 			let last_retrieved = NewLastRetrieved {
-				loc: State::OR,
+				loc: State::CA,
 				retrieved_date: breaches.first().unwrap().date_reported
 			};
 
@@ -226,6 +228,124 @@ async fn process_california(conn: &mut SqliteConnection) -> Result<(), Box<dyn s
 	}
 	else {
 		println!("No new breaches to insert in CA");
+	}
+
+	Ok(())
+}
+
+async fn process_maryland(conn: &mut SqliteConnection) -> Result<(), Box<dyn std::error::Error>> {
+	let rec = SinglePage{};
+
+	let client = reqwest::Client::new();
+
+	let last_recieved = get_last_retrieved(conn, State::MD)?;
+
+	let options = retrievers::RetrieverOptions {
+		collect_until: match last_recieved {
+			Some(lr) => lr.retrieved_date.checked_sub_days(Days::new(1)).unwrap(),
+			None => NaiveDate::from_ymd_opt(1970, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap()
+		},
+		base_url: "https://www.marylandattorneygeneral.gov/pages/identitytheft/breachnotices.aspx".to_string(),
+		headers: create_headers()
+	};
+
+	println!("Retrieving MD data breaches with options {:?}", options);
+
+	let breaches = rec.retrieve(&client, Box::new(CaParser{}), &options).await?;
+
+	if breaches.len() > 0 {
+		let mut inserted_breaches_count = 0;
+		for breach in &breaches {
+			let res = create_breach_data(conn, &breach);
+
+			if let Ok((i, c)) = res {
+				inserted_breaches_count += i;
+				if i == 0 && c > 0 {
+					println!("Created {} new classification(s) for {:?}", c, breach);
+				}
+			}
+			else {
+				println!("Error storing {:?}: {:?}", breach, res);
+			}
+		}
+
+		println!("Inserted total of {} breaches", inserted_breaches_count);
+
+		if inserted_breaches_count > 0 {
+			let last_retrieved = NewLastRetrieved {
+				loc: State::MD,
+				retrieved_date: breaches.first().unwrap().date_reported
+			};
+
+			let lr_result = insert_last_retrieved(conn, last_retrieved);
+
+			println!("{}", json!(lr_result));
+		}
+		else {
+			println!("No new breaches to insert in MD");
+		}
+	}
+	else {
+		println!("No new breaches to insert in MD");
+	}
+
+	Ok(())
+}
+
+async fn process_hawaii(conn: &mut SqliteConnection) -> Result<(), Box<dyn std::error::Error>> {
+	let rec = SinglePage{};
+
+	let client = reqwest::Client::new();
+
+	let last_recieved = get_last_retrieved(conn, State::HI)?;
+
+	let options = retrievers::RetrieverOptions {
+		collect_until: match last_recieved {
+			Some(lr) => lr.retrieved_date.checked_sub_days(Days::new(1)).unwrap(),
+			None => NaiveDate::from_ymd_opt(1970, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap()
+		},
+		base_url: "https://cca.hawaii.gov/ocp/notices/security-breach/".to_string(),
+		headers: create_headers()
+	};
+
+	println!("Retrieving HI data breaches with options {:?}", options);
+
+	let breaches = rec.retrieve(&client, Box::new(CaParser{}), &options).await?;
+
+	if breaches.len() > 0 {
+		let mut inserted_breaches_count = 0;
+		for breach in &breaches {
+			let res = create_breach_data(conn, &breach);
+
+			if let Ok((i, c)) = res {
+				inserted_breaches_count += i;
+				if i == 0 && c > 0 {
+					println!("Created {} new classification(s) for {:?}", c, breach);
+				}
+			}
+			else {
+				println!("Error storing {:?}: {:?}", breach, res);
+			}
+		}
+
+		println!("Inserted total of {} breaches", inserted_breaches_count);
+
+		if inserted_breaches_count > 0 {
+			let last_retrieved = NewLastRetrieved {
+				loc: State::HI,
+				retrieved_date: breaches.first().unwrap().date_reported
+			};
+
+			let lr_result = insert_last_retrieved(conn, last_retrieved);
+
+			println!("{}", json!(lr_result));
+		}
+		else {
+			println!("No new breaches to insert in HI");
+		}
+	}
+	else {
+		println!("No new breaches to insert in HI");
 	}
 
 	Ok(())

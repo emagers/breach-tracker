@@ -4,10 +4,66 @@ use diesel::{prelude::*, AsExpression, sql_types::*, FromSqlRow, serialize::{sel
 #[repr(i32)]
 #[derive(Debug, Clone, Copy, FromSqlRow, AsExpression, PartialEq)]
 #[diesel(sql_type = Integer)]
+pub enum BreachType {
+	Unknown = 0,
+	HackerUnauthorizedAccess = 1,
+	StolenEquipment = 2,
+	Ransomware = 3,
+	LostInTransit = 4,
+	ReleaseOrDisplayOfInformation = 5,
+	TheftByEmployeeOrContractor = 6,
+	Phishing = 7,
+}
+
+impl<DB> ToSql<Integer, DB> for BreachType
+where
+	DB: Backend,
+	i32: ToSql<Integer, DB>,
+{
+	fn to_sql<'b>(&'b self, out: &mut Output<'b, '_, DB>) -> serialize::Result {
+		match self {
+			BreachType::Unknown => 0.to_sql(out),
+			BreachType::HackerUnauthorizedAccess => 1.to_sql(out),
+			BreachType::StolenEquipment => 2.to_sql(out),
+			BreachType::Ransomware => 3.to_sql(out),
+			BreachType::LostInTransit => 4.to_sql(out),
+			BreachType::ReleaseOrDisplayOfInformation => 5.to_sql(out),
+			BreachType::TheftByEmployeeOrContractor => 6.to_sql(out),
+			BreachType::Phishing => 7.to_sql(out),
+		}
+	}
+}
+
+impl<DB> FromSql<Integer, DB> for BreachType
+where
+	DB: Backend,
+	i32: FromSql<Integer, DB>,
+{
+	fn from_sql(bytes: backend::RawValue<DB>) -> deserialize::Result<Self> {
+		match i32::from_sql(bytes)? {
+			0 => Ok(BreachType::Unknown),
+			1 => Ok(BreachType::HackerUnauthorizedAccess),
+			2 => Ok(BreachType::StolenEquipment),
+			3 => Ok(BreachType::Ransomware),
+			4 => Ok(BreachType::LostInTransit),
+			5 => Ok(BreachType::ReleaseOrDisplayOfInformation),
+			6 => Ok(BreachType::TheftByEmployeeOrContractor),
+			7 => Ok(BreachType::Phishing),
+			x => Err(format!("Unrecognized variant {}", x).into()),
+		}
+	}
+}
+
+
+#[repr(i32)]
+#[derive(Debug, Clone, Copy, FromSqlRow, AsExpression, PartialEq)]
+#[diesel(sql_type = Integer)]
 pub enum State {
 	WA = 1,
 	OR = 2,
 	CA = 3,
+	MD = 4,
+	HI = 5,
 }
 
 impl<DB> ToSql<Integer, DB> for State
@@ -20,6 +76,8 @@ where
 			State::WA => 1.to_sql(out),
 			State::OR => 2.to_sql(out),
 			State::CA => 3.to_sql(out),
+			State::MD => 4.to_sql(out),
+			State::HI => 5.to_sql(out),
 		}
 	}
 }
@@ -34,6 +92,8 @@ where
 			1 => Ok(State::WA),
 			2 => Ok(State::OR),
 			3 => Ok(State::CA),
+			4 => Ok(State::MD),
+			5 => Ok(State::HI),
 			x => Err(format!("Unrecognized variant {}", x).into()),
 		}
 	}
@@ -146,6 +206,7 @@ pub struct BreachData {
 	pub affected_count: Option<i32>,
 	pub loc: State,
 	pub link: Option<String>,
+	pub breach_type: BreachType,
 }
 
 #[derive(Debug, Insertable, Clone)]
@@ -157,6 +218,7 @@ pub struct NewBreachData {
 	pub affected_count: Option<i32>,
 	pub loc: State,
 	pub link: Option<String>,
+	pub breach_type: BreachType,
 }
 
 #[derive(Queryable, Debug, PartialEq, Identifiable, Copy, Clone)]

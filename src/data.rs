@@ -22,6 +22,7 @@ pub fn create_breach_data(conn: &mut SqliteConnection, data: &crate::dto::Breach
 		date_of_breach: data.date_of_breach,
 		affected_count: data.affected_count,
 		loc: data.loc.into(),
+		breach_type: data.breach_type.into(),
 		link: data.link.clone(),
 	};
 

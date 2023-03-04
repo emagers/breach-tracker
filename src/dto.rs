@@ -2,10 +2,54 @@ use chrono::NaiveDateTime;
 use serde::{Serialize, Deserialize};
 
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
+pub enum BreachType {
+	Unknown = 0,
+	HackerUnauthorizedAccess = 1,
+	StolenEquipment = 2,
+	Ransomware = 3,
+	LostInTransit = 4,
+	ReleaseOrDisplayOfInformation = 5,
+	TheftByEmployeeOrContractor = 6,
+	Phishing = 7,
+}
+
+impl From<crate::datamodels::BreachType> for BreachType {
+	fn from(value: crate::datamodels::BreachType) -> Self {
+		match value {
+			crate::datamodels::BreachType::Unknown => BreachType::Unknown,
+			crate::datamodels::BreachType::HackerUnauthorizedAccess => BreachType::HackerUnauthorizedAccess,
+			crate::datamodels::BreachType::StolenEquipment => BreachType::StolenEquipment,
+			crate::datamodels::BreachType::Ransomware => BreachType::Ransomware,
+			crate::datamodels::BreachType::LostInTransit => BreachType::LostInTransit,
+			crate::datamodels::BreachType::ReleaseOrDisplayOfInformation => BreachType::ReleaseOrDisplayOfInformation,
+			crate::datamodels::BreachType::TheftByEmployeeOrContractor => BreachType::TheftByEmployeeOrContractor,
+			crate::datamodels::BreachType::Phishing => BreachType::Phishing,
+		}
+	}
+}
+
+impl From<BreachType> for crate::datamodels::BreachType {
+	fn from(value: BreachType) -> Self {
+		match value {
+			BreachType::Unknown => crate::datamodels::BreachType::Unknown,
+			BreachType::HackerUnauthorizedAccess => crate::datamodels::BreachType::HackerUnauthorizedAccess,
+			BreachType::StolenEquipment => crate::datamodels::BreachType::StolenEquipment,
+			BreachType::Ransomware => crate::datamodels::BreachType::Ransomware,
+			BreachType::LostInTransit => crate::datamodels::BreachType::LostInTransit,
+			BreachType::ReleaseOrDisplayOfInformation => crate::datamodels::BreachType::ReleaseOrDisplayOfInformation,
+			BreachType::TheftByEmployeeOrContractor => crate::datamodels::BreachType::TheftByEmployeeOrContractor,
+			BreachType::Phishing => crate::datamodels::BreachType::Phishing,
+		}
+	}
+}
+
+#[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum State {
 	WA = 1,
 	OR = 2,
 	CA = 3,
+	MD = 4,
+	HI = 5,
 }
 
 impl From<crate::datamodels::State> for State {
@@ -14,6 +58,8 @@ impl From<crate::datamodels::State> for State {
 			crate::datamodels::State::WA => State::WA,
 			crate::datamodels::State::OR => State::OR,
 			crate::datamodels::State::CA => State::CA,
+			crate::datamodels::State::MD => State::MD,
+			crate::datamodels::State::HI => State::HI,
 		}
 	}
 }
@@ -24,6 +70,8 @@ impl From<State> for crate::datamodels::State {
 			State::WA => crate::datamodels::State::WA,
 			State::OR => crate::datamodels::State::OR,
 			State::CA => crate::datamodels::State::CA,
+			State::MD => crate::datamodels::State::MD,
+			State::HI => crate::datamodels::State::HI,
 		}
 	}
 }
@@ -113,6 +161,7 @@ pub struct Breach {
 	pub date_of_breach: Option<NaiveDateTime>,
 	pub affected_count: Option<i32>,
 	pub loc: State,
+	pub breach_type: BreachType,
 	pub link: Option<String>,
 	pub leaked_info: Vec<ClassificationType>
 }
@@ -126,6 +175,7 @@ impl From<(&crate::datamodels::BreachData, Vec<&crate::datamodels::Classificatio
 			date_of_breach: value.0.date_of_breach,
 			affected_count: value.0.affected_count,
 			loc: value.0.loc.into(),
+			breach_type: value.0.breach_type.into(),
 			link: value.0.link.clone(),
 			leaked_info: value.1.iter().map(|r|
 				(&r.classification_type, r.content.as_str()).into()

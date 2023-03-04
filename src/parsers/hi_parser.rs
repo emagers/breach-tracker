@@ -2,9 +2,9 @@ use chrono::NaiveDateTime;
 use crate::dto::{Breach, State, BreachType};
 use super::Parser;
 
-pub struct OrParser { }
+pub struct HiParser { }
 
-impl OrParser {
+impl HiParser {
 	fn parse_body(text: &str) -> Result<Vec<Breach>, Box<dyn std::error::Error>> {
 		let mut content_it = text.split("<tbody>");
 		_ = content_it.next();
@@ -20,7 +20,7 @@ impl OrParser {
 					_ = row_it.next();
 
 					while let Some(row) = row_it.next() {
-						let mut breach = OrParser::parse_breach(row)?;
+						let mut breach = HiParser::parse_breach(row)?;
 						breaches.append(&mut breach);
 					}
 				}
@@ -52,7 +52,7 @@ impl OrParser {
 				let mut link_raw_it = link_raw.split("\"");
 				let l = link_raw_it.next().unwrap().to_string();
 
-				link = Some(format!("{}{}", "https://justice.oregon.gov", l));
+				link = Some(format!(l));
 			}
 
 			let org = field_it.next().unwrap();
@@ -108,7 +108,7 @@ impl OrParser {
 		}
 
 		if date_reported.is_none() || date_of_breaches.len() == 0 || organization_name.is_none() {
-			return Err(format!("OR parsing failure {}", text).into());
+			return Err(format!("HI parsing failure {}", text).into());
 		}
 
 		Ok(date_of_breaches.iter().map(|dob| Breach {
@@ -117,7 +117,7 @@ impl OrParser {
 			date_of_breach: dob.clone(),
 			organization_name: organization_name.unwrap().to_string(),
 			affected_count: None,
-			loc: State::OR,
+			loc: State::HI,
 			link: link.clone(),
 			breach_type: BreachType::Unknown,
 			leaked_info: vec!()
@@ -125,8 +125,8 @@ impl OrParser {
 	}
 }
 
-impl Parser for OrParser {
+impl Parser for HiParser {
 	fn parse_page(&self, page: &str) -> Result<Vec<Breach>, Box<dyn std::error::Error>> {
-		OrParser::parse_body(page)
+		HiParser::parse_body(page)
 	}
 }

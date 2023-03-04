@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use crate::dto::{ClassificationType, Sensitivity, Breach, State};
+use crate::dto::{ClassificationType, Sensitivity, Breach, State, BreachType};
 use super::Parser;
 
 pub struct WaParser{}
@@ -127,6 +127,7 @@ impl WaParser {
 			affected_count: affected_count,
 			loc: State::WA,
 			link,
+			breach_type: BreachType::Unknown,
 			leaked_info
 		})
 	}

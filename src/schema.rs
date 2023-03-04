@@ -9,6 +9,7 @@ diesel::table! {
         affected_count -> Nullable<Integer>,
         loc -> Integer,
         link -> Nullable<Text>,
+        breach_type -> Integer,
     }
 }
 

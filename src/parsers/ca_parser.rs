@@ -1,5 +1,5 @@
 use chrono::NaiveDateTime;
-use crate::dto::{Breach, State};
+use crate::dto::{Breach, State, BreachType};
 use super::Parser;
 
 pub struct CaParser { }
@@ -106,6 +106,7 @@ impl CaParser {
 			affected_count: None,
 			loc: State::CA,
 			link: link.clone(),
+			breach_type: BreachType::Unknown,
 			leaked_info: vec!()
 		}).collect())
 	}
