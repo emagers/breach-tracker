@@ -8,10 +8,10 @@ pub mod data;
 pub mod parsers;
 
 use data::{establish_connection, create_breach_data, get_last_retrieved};
-use datamodels::State;
 use diesel::SqliteConnection;
+use parsers::Parser;
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, USER_AGENT};
-use retrievers::{multi_page::MultiPage, single_page::SinglePage, Retriever};
+use retrievers::{multi_page::MultiPage, single_page::SinglePage, Retriever, RetrieverOptions};
 use serde_json::json;
 
 use crate::{datamodels::NewLastRetrieved, data::insert_last_retrieved, parsers::{ca_parser::CaParser, or_parser::OrParser, wa_parser::WaParser, hi_parser::HiParser}};
@@ -23,28 +23,18 @@ async fn main() -> Result<(), ()> {
 
 	let conn = &mut establish_connection();
 
-	// let result = process_california(conn).await;
+	let processor = ProcessorBuilder::new()
+		.process_option(get_wa_options(conn))
+		.process_option(get_hi_options(conn))
+		.process_option(get_ca_options(conn))
+		.process_option(get_or_options(conn))
+		.build().unwrap();
 
-	// match result {
-	// 	Ok(_) => {},
-	// 	Err(err) => { println!("{:?}", err); }
-	// }
-
-	// let result = process_oregon(conn).await;
-
-	// match result {
-	// 	Ok(_) => {},
-	// 	Err(err) => { println!("{:?}", err); }
-	// }
-
-	//let result = process_maryland(conn).await;
-
-	let result = process_hawaii(conn).await;
-
-	match result {
-		Ok(_) => Ok(()),
-		Err(err) => { println!("{:?}", err); return Err(()); }
+	if let Err(err) = processor.process(conn).await {
+		println!("{:?}", err);
 	}
+
+	Ok(())
 }
 
 fn create_headers() -> HeaderMap<HeaderValue> {
@@ -56,297 +46,177 @@ fn create_headers() -> HeaderMap<HeaderValue> {
 	headers
 }
 
-async fn process_washington(conn: &mut SqliteConnection) -> Result<(), Box<dyn std::error::Error>> {
-	let rec = MultiPage{};
 
-	let client = reqwest::Client::new();
 
-	let last_recieved = get_last_retrieved(conn, State::WA)?;
+fn get_parser(state: dto::State) -> Box<dyn Parser + Send> {
+	match state {
+		dto::State::WA => Box::new(WaParser{}),
+		dto::State::CA => Box::new(CaParser{}),
+		dto::State::OR => Box::new(OrParser{}),
+		dto::State::HI => Box::new(HiParser{}),
+		dto::State::MD => Box::new(WaParser{}),
+	}
+}
 
-	let options = retrievers::RetrieverOptions {
+fn get_retriever(state: dto::State) -> Box<dyn Retriever> {
+	match state {
+		dto::State::WA => Box::new(MultiPage{}),
+		dto::State::CA => Box::new(SinglePage{}),
+		dto::State::OR => Box::new(SinglePage{}),
+		dto::State::HI => Box::new(SinglePage{}),
+		dto::State::MD => Box::new(SinglePage{}),
+	}
+}
+
+fn get_wa_options(conn: &mut SqliteConnection) -> RetrieverOptions {
+	let last_recieved = get_last_retrieved(conn, dto::State::WA.into()).unwrap();
+
+	retrievers::RetrieverOptions {
 		collect_until: match last_recieved {
 			Some(lr) => lr.retrieved_date.checked_sub_days(Days::new(1)).unwrap(),
 			None => NaiveDate::from_ymd_opt(1970, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap()
 		},
 		base_url: "https://www.atg.wa.gov/data-breach-notifications?page=".to_string(),
-		headers: create_headers()
-	};
-
-	println!("Retrieving WA data breaches with options {:?}", options);
-
-	let breaches = rec.retrieve(&client, Box::new(WaParser{}), &options).await?;
-
-	if breaches.len() > 0 {
-		let mut inserted_breaches_count = 0;
-		for breach in &breaches {
-			let res = create_breach_data(conn, &breach);
-
-			if let Ok((i, c)) = res {
-				inserted_breaches_count += i;
-				if i == 0 && c > 0 {
-					println!("Created {} new classification(s) for {:?}", c, breach);
-				}
-			}
-			else {
-				println!("Error storing {:?}: {:?}", breach, res);
-			}
-		}
-
-		println!("Inserted total of {} breaches", inserted_breaches_count);
-
-		if inserted_breaches_count > 0 {
-			let last_retrieved = NewLastRetrieved {
-				loc: State::WA,
-				retrieved_date: breaches.first().unwrap().date_reported
-			};
-
-			let lr_result = insert_last_retrieved(conn, last_retrieved);
-
-			println!("{}", json!(lr_result));
-		}
-		else {
-			println!("No new breaches to insert");
-		}
+		headers: create_headers(),
+		state: dto::State::WA,
 	}
-	else {
-		println!("No new breaches to insert");
-	}
-
-	Ok(())
 }
 
-async fn process_oregon(conn: &mut SqliteConnection) -> Result<(), Box<dyn std::error::Error>> {
-	let rec = SinglePage{};
+fn get_ca_options(conn: &mut SqliteConnection) -> RetrieverOptions {
+	let last_recieved = get_last_retrieved(conn, dto::State::CA.into()).unwrap();
 
-	let client = reqwest::Client::new();
-
-	let last_recieved = get_last_retrieved(conn, State::OR)?;
-
-	let options = retrievers::RetrieverOptions {
-		collect_until: match last_recieved {
-			Some(lr) => lr.retrieved_date.checked_sub_days(Days::new(1)).unwrap(),
-			None => NaiveDate::from_ymd_opt(1970, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap()
-		},
-		base_url: "https://justice.oregon.gov/consumer/databreach/".to_string(),
-		headers: create_headers()
-	};
-
-	println!("Retrieving OR data breaches with options {:?}", options);
-
-	let breaches = rec.retrieve(&client, Box::new(OrParser{}), &options).await?;
-
-	if breaches.len() > 0 {
-		let mut inserted_breaches_count = 0;
-		for breach in &breaches {
-			let res = create_breach_data(conn, &breach);
-
-			if let Ok((i, c)) = res {
-				inserted_breaches_count += i;
-				if i == 0 && c > 0 {
-					println!("Created {} new classification(s) for {:?}", c, breach);
-				}
-			}
-			else {
-				println!("Error storing {:?}: {:?}", breach, res);
-			}
-		}
-
-		println!("Inserted total of {} breaches", inserted_breaches_count);
-
-		if inserted_breaches_count > 0 {
-			let last_retrieved = NewLastRetrieved {
-				loc: State::OR,
-				retrieved_date: breaches.first().unwrap().date_reported
-			};
-
-			let lr_result = insert_last_retrieved(conn, last_retrieved);
-
-			println!("{}", json!(lr_result));
-		}
-		else {
-			println!("No new breaches to insert");
-		}
-	}
-	else {
-		println!("No new breaches to insert");
-	}
-
-	Ok(())
-}
-
-async fn process_california(conn: &mut SqliteConnection) -> Result<(), Box<dyn std::error::Error>> {
-	let rec = SinglePage{};
-
-	let client = reqwest::Client::new();
-
-	let last_recieved = get_last_retrieved(conn, State::CA)?;
-
-	let options = retrievers::RetrieverOptions {
+	retrievers::RetrieverOptions {
 		collect_until: match last_recieved {
 			Some(lr) => lr.retrieved_date.checked_sub_days(Days::new(1)).unwrap(),
 			None => NaiveDate::from_ymd_opt(1970, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap()
 		},
 		base_url: "https://oag.ca.gov/privacy/databreach/list".to_string(),
-		headers: create_headers()
-	};
-
-	println!("Retrieving CA data breaches with options {:?}", options);
-
-	let breaches = rec.retrieve(&client, Box::new(CaParser{}), &options).await?;
-
-	if breaches.len() > 0 {
-		let mut inserted_breaches_count = 0;
-		for breach in &breaches {
-			let res = create_breach_data(conn, &breach);
-
-			if let Ok((i, c)) = res {
-				inserted_breaches_count += i;
-				if i == 0 && c > 0 {
-					println!("Created {} new classification(s) for {:?}", c, breach);
-				}
-			}
-			else {
-				println!("Error storing {:?}: {:?}", breach, res);
-			}
-		}
-
-		println!("Inserted total of {} breaches", inserted_breaches_count);
-
-		if inserted_breaches_count > 0 {
-			let last_retrieved = NewLastRetrieved {
-				loc: State::CA,
-				retrieved_date: breaches.first().unwrap().date_reported
-			};
-
-			let lr_result = insert_last_retrieved(conn, last_retrieved);
-
-			println!("{}", json!(lr_result));
-		}
-		else {
-			println!("No new breaches to insert in CA");
-		}
+		headers: create_headers(),
+		state: dto::State::CA
 	}
-	else {
-		println!("No new breaches to insert in CA");
-	}
-
-	Ok(())
 }
 
-// async fn process_maryland(conn: &mut SqliteConnection) -> Result<(), Box<dyn std::error::Error>> {
-// 	let rec = SinglePage{};
+fn get_or_options(conn: &mut SqliteConnection) -> RetrieverOptions {
+	let last_recieved = get_last_retrieved(conn, dto::State::OR.into()).unwrap();
 
-// 	let client = reqwest::Client::new();
+	retrievers::RetrieverOptions {
+		collect_until: match last_recieved {
+			Some(lr) => lr.retrieved_date.checked_sub_days(Days::new(1)).unwrap(),
+			None => NaiveDate::from_ymd_opt(1970, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap()
+		},
+		base_url: "https://justice.oregon.gov/consumer/databreach/".to_string(),
+		headers: create_headers(),
+		state: dto::State::OR,
+	}
+}
 
-// 	let last_recieved = get_last_retrieved(conn, State::MD)?;
+fn get_hi_options(conn: &mut SqliteConnection) -> RetrieverOptions {
+	let last_recieved = get_last_retrieved(conn, dto::State::HI.into()).unwrap();
 
-// 	let options = retrievers::RetrieverOptions {
-// 		collect_until: match last_recieved {
-// 			Some(lr) => lr.retrieved_date.checked_sub_days(Days::new(1)).unwrap(),
-// 			None => NaiveDate::from_ymd_opt(1970, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap()
-// 		},
-// 		base_url: "https://www.marylandattorneygeneral.gov/pages/identitytheft/breachnotices.aspx".to_string(),
-// 		headers: create_headers()
-// 	};
-
-// 	println!("Retrieving MD data breaches with options {:?}", options);
-
-// 	let breaches = rec.retrieve(&client, Box::new(MdParser{}), &options).await?;
-
-// 	if breaches.len() > 0 {
-// 		let mut inserted_breaches_count = 0;
-// 		for breach in &breaches {
-// 			let res = create_breach_data(conn, &breach);
-
-// 			if let Ok((i, c)) = res {
-// 				inserted_breaches_count += i;
-// 				if i == 0 && c > 0 {
-// 					println!("Created {} new classification(s) for {:?}", c, breach);
-// 				}
-// 			}
-// 			else {
-// 				println!("Error storing {:?}: {:?}", breach, res);
-// 			}
-// 		}
-
-// 		println!("Inserted total of {} breaches", inserted_breaches_count);
-
-// 		if inserted_breaches_count > 0 {
-// 			let last_retrieved = NewLastRetrieved {
-// 				loc: State::MD,
-// 				retrieved_date: breaches.first().unwrap().date_reported
-// 			};
-
-// 			let lr_result = insert_last_retrieved(conn, last_retrieved);
-
-// 			println!("{}", json!(lr_result));
-// 		}
-// 		else {
-// 			println!("No new breaches to insert in MD");
-// 		}
-// 	}
-// 	else {
-// 		println!("No new breaches to insert in MD");
-// 	}
-
-// 	Ok(())
-// }
-
-async fn process_hawaii(conn: &mut SqliteConnection) -> Result<(), Box<dyn std::error::Error>> {
-	let rec = SinglePage{};
-
-	let client = reqwest::Client::new();
-
-	let last_recieved = get_last_retrieved(conn, State::HI)?;
-
-	let options = retrievers::RetrieverOptions {
+	retrievers::RetrieverOptions {
 		collect_until: match last_recieved {
 			Some(lr) => lr.retrieved_date.checked_sub_days(Days::new(1)).unwrap(),
 			None => NaiveDate::from_ymd_opt(1970, 1, 1).unwrap().and_hms_opt(0, 0, 0).unwrap()
 		},
 		base_url: "https://cca.hawaii.gov/ocp/notices/security-breach/".to_string(),
-		headers: create_headers()
-	};
+		headers: create_headers(),
+		state: dto::State::HI
+	}
+}
 
-	println!("Retrieving HI data breaches with options {:?}", options);
+fn get_md_options(conn: &mut SqliteConnection) -> RetrieverOptions {
+	//let last_recieved = get_last_retrieved(conn, options.state.into())?;
 
-	let breaches = rec.retrieve(&client, Box::new(HiParser{}), &options).await?;
+	todo!()
+}
 
-	if breaches.len() > 0 {
-		let mut inserted_breaches_count = 0;
-		for breach in &breaches {
-			let res = create_breach_data(conn, &breach);
+pub struct Processor {
+	to_process: Vec<RetrieverOptions>,
+}
 
-			if let Ok((i, c)) = res {
-				inserted_breaches_count += i;
-				if i == 0 && c > 0 {
-					println!("Created {} new classification(s) for {:?}", c, breach);
+impl Processor {
+	pub async fn process(&self, conn: &mut SqliteConnection) -> Result<(), Box<dyn std::error::Error>> {
+		for options in self.to_process.iter() {
+			if let Err(err) = self.process_breaches(conn, options).await {
+				println!("{:?}", err)
+			}
+		}
+
+		Ok(())
+	}
+
+	async fn process_breaches(&self, conn: &mut SqliteConnection, options: &retrievers::RetrieverOptions) -> Result<(), Box<dyn std::error::Error>> {
+		let rec = get_retriever(options.state);
+
+		let client = reqwest::Client::new();
+
+		println!("Retrieving data breaches with options {:?}", options);
+
+		let breaches = rec.retrieve(&client, get_parser(options.state), &options).await?;
+
+		if breaches.len() > 0 {
+			let mut inserted_breaches_count = 0;
+			for breach in &breaches {
+				let res = create_breach_data(conn, &breach);
+
+				if let Ok((i, c)) = res {
+					inserted_breaches_count += i;
+					if i == 0 && c > 0 {
+						println!("Created {} new classification(s) for {:?}", c, breach);
+					}
+				}
+				else {
+					println!("Error storing {:?}: {:?}", breach, res);
 				}
 			}
+
+			println!("Inserted total of {} breaches", inserted_breaches_count);
+
+			if inserted_breaches_count > 0 {
+				let last_retrieved = NewLastRetrieved {
+					loc: options.state.into(),
+					retrieved_date: breaches.first().unwrap().date_reported
+				};
+
+				let lr_result = insert_last_retrieved(conn, last_retrieved);
+
+				println!("{}", json!(lr_result));
+			}
 			else {
-				println!("Error storing {:?}: {:?}", breach, res);
+				println!("No new breaches to insert in {:?}", options.state);
 			}
 		}
-
-		println!("Inserted total of {} breaches", inserted_breaches_count);
-
-		if inserted_breaches_count > 0 {
-			let last_retrieved = NewLastRetrieved {
-				loc: State::HI,
-				retrieved_date: breaches.first().unwrap().date_reported
-			};
-
-			let lr_result = insert_last_retrieved(conn, last_retrieved);
-
-			println!("{}", json!(lr_result));
-		}
 		else {
-			println!("No new breaches to insert in HI");
+			println!("No new breaches to insert in {:?}", options.state);
+		}
+
+		Ok(())
+	}
+}
+
+pub struct ProcessorBuilder {
+	to_process: Vec<RetrieverOptions>
+}
+
+impl ProcessorBuilder {
+	pub fn new() -> Self {
+		Self {
+			to_process: vec!()
 		}
 	}
-	else {
-		println!("No new breaches to insert in HI");
+
+	pub fn process_option(mut self, option: RetrieverOptions) -> ProcessorBuilder {
+		self.to_process.push(option);
+		self
 	}
 
-	Ok(())
+	pub fn build(self) -> Result<Processor, String> {
+		if self.to_process.len() == 0 {
+			return Err("Cannot create processor without any options".to_string())
+		}
+
+		Ok(Processor {
+			to_process: self.to_process
+		})
+	}
 }

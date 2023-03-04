@@ -18,6 +18,7 @@ pub struct RetrieverOptions {
 	pub collect_until: NaiveDateTime,
 	pub base_url: String,
 	pub headers: HeaderMap<HeaderValue>,
+	pub state: crate::dto::State,
 }
 
 async fn invoke(client: &Client, url: &str, headers: &HeaderMap<HeaderValue>) -> Result<String, Box<dyn Error>> {
