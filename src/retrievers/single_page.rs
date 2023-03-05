@@ -7,19 +7,16 @@ pub struct SinglePage {}
 
 #[async_trait]
 impl Retriever for SinglePage {
-	async fn retrieve(&self, client: &Client, parser: Box<dyn Parser + Send>, options: &RetrieverOptions) -> Result<Vec<Breach>, Box<dyn std::error::Error>> {
+	async fn retrieve(&self, client: &Client, parser: Box<dyn Parser + Send>, options: &RetrieverOptions, _: Box<dyn Fn(i32) -> i32 + Send>, url_generator: Box<dyn Fn(String, String) -> String + Send>) -> Result<Vec<Breach>, Box<dyn std::error::Error>> {
 		let mut breaches = vec!();
+		let next_url = url_generator(options.base_url.clone(), "".into());
 
-		let text = invoke(client, &self.get_url(&options.base_url, 0), &options.headers).await?;
+		let text = invoke(client, &next_url, &options.headers, &options.request_type).await?;
 
-		let mut brs = parser.parse_page(&text)?;
+		let (mut brs, _) = parser.parse_page(&text)?;
 
 		breaches.append(&mut brs);
 
 		Ok(breaches)
-	}
-
-	fn get_url(&self, base_url: &str, _: i32) -> String {
-		format!("{}", base_url)
 	}
 }

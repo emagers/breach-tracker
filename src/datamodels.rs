@@ -13,6 +13,7 @@ pub enum BreachType {
 	ReleaseOrDisplayOfInformation = 5,
 	TheftByEmployeeOrContractor = 6,
 	Phishing = 7,
+	Malicious3rdParty = 8
 }
 
 impl<DB> ToSql<Integer, DB> for BreachType
@@ -30,6 +31,7 @@ where
 			BreachType::ReleaseOrDisplayOfInformation => 5.to_sql(out),
 			BreachType::TheftByEmployeeOrContractor => 6.to_sql(out),
 			BreachType::Phishing => 7.to_sql(out),
+			BreachType::Malicious3rdParty => 8.to_sql(out),
 		}
 	}
 }
@@ -49,6 +51,7 @@ where
 			5 => Ok(BreachType::ReleaseOrDisplayOfInformation),
 			6 => Ok(BreachType::TheftByEmployeeOrContractor),
 			7 => Ok(BreachType::Phishing),
+			8 => Ok(BreachType::Malicious3rdParty),
 			x => Err(format!("Unrecognized variant {}", x).into()),
 		}
 	}
@@ -120,6 +123,8 @@ pub enum ClassificationType {
 	HealthInsurancePolicy = 14,
 	MedicalInformation = 15,
 	BiometricData = 16,
+	PhoneNumber = 17,
+	Address = 18,
 }
 
 impl<DB> ToSql<Integer, DB> for ClassificationType
@@ -146,6 +151,8 @@ where
 			ClassificationType::HealthInsurancePolicy => 14.to_sql(out),
 			ClassificationType::MedicalInformation => 15.to_sql(out),
 			ClassificationType::BiometricData => 16.to_sql(out),
+			ClassificationType::PhoneNumber => 17.to_sql(out),
+			ClassificationType::Address => 18.to_sql(out),
 		}
 	}
 }
@@ -174,6 +181,8 @@ where
 			14 => Ok(ClassificationType::HealthInsurancePolicy),
 			15 => Ok(ClassificationType::MedicalInformation),
 			16 => Ok(ClassificationType::BiometricData),
+			17 => Ok(ClassificationType::PhoneNumber),
+			18 => Ok(ClassificationType::Address),
 			x => Err(format!("Unrecognized variant {}", x).into()),
 		}
 	}

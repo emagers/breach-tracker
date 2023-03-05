@@ -11,6 +11,7 @@ pub enum BreachType {
 	ReleaseOrDisplayOfInformation = 5,
 	TheftByEmployeeOrContractor = 6,
 	Phishing = 7,
+	Malicious3rdParty = 8,
 }
 
 impl From<crate::datamodels::BreachType> for BreachType {
@@ -24,6 +25,7 @@ impl From<crate::datamodels::BreachType> for BreachType {
 			crate::datamodels::BreachType::ReleaseOrDisplayOfInformation => BreachType::ReleaseOrDisplayOfInformation,
 			crate::datamodels::BreachType::TheftByEmployeeOrContractor => BreachType::TheftByEmployeeOrContractor,
 			crate::datamodels::BreachType::Phishing => BreachType::Phishing,
+			crate::datamodels::BreachType::Malicious3rdParty => BreachType::Malicious3rdParty,
 		}
 	}
 }
@@ -39,6 +41,7 @@ impl From<BreachType> for crate::datamodels::BreachType {
 			BreachType::ReleaseOrDisplayOfInformation => crate::datamodels::BreachType::ReleaseOrDisplayOfInformation,
 			BreachType::TheftByEmployeeOrContractor => crate::datamodels::BreachType::TheftByEmployeeOrContractor,
 			BreachType::Phishing => crate::datamodels::BreachType::Phishing,
+			BreachType::Malicious3rdParty => crate::datamodels::BreachType::Malicious3rdParty,
 		}
 	}
 }
@@ -102,7 +105,9 @@ pub enum ClassificationType {
 	PassportNumber(Sensitivity),
 	HealthInsurancePolicy(Sensitivity),
 	MedicalInformation(Sensitivity),
-	BiometricData(Sensitivity)
+	BiometricData(Sensitivity),
+	PhoneNumber(Sensitivity),
+	Address(Sensitivity),
 }
 
 impl From<(&crate::datamodels::ClassificationType, &str)> for ClassificationType {
@@ -125,6 +130,8 @@ impl From<(&crate::datamodels::ClassificationType, &str)> for ClassificationType
 			crate::datamodels::ClassificationType::HealthInsurancePolicy => ClassificationType::HealthInsurancePolicy(Sensitivity::Medium),
 			crate::datamodels::ClassificationType::MedicalInformation => ClassificationType::MedicalInformation(Sensitivity::Medium),
 			crate::datamodels::ClassificationType::BiometricData => ClassificationType::BiometricData(Sensitivity::High),
+			crate::datamodels::ClassificationType::PhoneNumber => ClassificationType::PhoneNumber(Sensitivity::Medium),
+			crate::datamodels::ClassificationType::Address => ClassificationType::Address(Sensitivity::Medium),
 		}
 	}
 }
@@ -149,6 +156,8 @@ impl From<&ClassificationType> for crate::datamodels::ClassificationType {
 			ClassificationType::HealthInsurancePolicy(_) => crate::datamodels::ClassificationType::HealthInsurancePolicy,
 			ClassificationType::MedicalInformation(_) => crate::datamodels::ClassificationType::MedicalInformation,
 			ClassificationType::BiometricData(_) => crate::datamodels::ClassificationType::BiometricData,
+			ClassificationType::PhoneNumber(_) => crate::datamodels::ClassificationType::PhoneNumber,
+			ClassificationType::Address(_) => crate::datamodels::ClassificationType::Address,
 		}
 	}
 }

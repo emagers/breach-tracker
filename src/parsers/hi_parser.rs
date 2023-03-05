@@ -5,14 +5,14 @@ use super::Parser;
 pub struct HiParser { }
 
 impl HiParser {
-	fn parse_body(text: &str) -> Result<Vec<Breach>, Box<dyn std::error::Error>> {
+	fn parse_body(text: &str) -> Result<(Vec<Breach>, Option<String>), Box<dyn std::error::Error>> {
 		let mut content_it = text.split("<tbody class=\"row-hover\">");
 		_ = content_it.next();
 		let content = content_it.next();
 
 		let mut breaches = vec!();
 		match content {
-			None => return Ok(breaches),
+			None => return Ok((breaches, None)),
 			Some(rows_content) => {
 				let mut rows_it = rows_content.split("</tbody>");
 				if let Some(rows) = rows_it.next() {
@@ -27,7 +27,7 @@ impl HiParser {
 			}
 		}
 
-		Ok(breaches)
+		Ok((breaches, None))
 	}
 
 	fn parse_breach(text: &str) -> Result<Breach, Box<dyn std::error::Error>> {
@@ -148,7 +148,7 @@ impl HiParser {
 }
 
 impl Parser for HiParser {
-	fn parse_page(&self, page: &str) -> Result<Vec<Breach>, Box<dyn std::error::Error>> {
+	fn parse_page(&self, page: &str) -> Result<(Vec<Breach>, Option<String>), Box<dyn std::error::Error>> {
 		HiParser::parse_body(page)
 	}
 }

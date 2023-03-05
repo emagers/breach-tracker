@@ -5,7 +5,7 @@ use super::Parser;
 pub struct WaParser{}
 
 impl WaParser {
-	fn parse_body(text: &str) -> Result<Vec<Breach>, Box<dyn std::error::Error>> {
+	fn parse_body(text: &str) -> Result<(Vec<Breach>, Option<String>), Box<dyn std::error::Error>> {
 		let mut content_it = text.split("<tbody>");
 		_ = content_it.next();
 		_ = content_it.next();
@@ -13,7 +13,7 @@ impl WaParser {
 
 		let mut breaches = vec!();
 		match content {
-			None => return Ok(breaches),
+			None => return Ok((breaches, None)),
 			Some(rows_content) => {
 				let mut rows_it = rows_content.split("</tbody>");
 				if let Some(rows) = rows_it.next() {
@@ -29,7 +29,7 @@ impl WaParser {
 			}
 		}
 
-		Ok(breaches)
+		Ok((breaches, None))
 	}
 
 	fn parse_breach(text: &str) -> Result<Breach, Box<dyn std::error::Error>> {
@@ -172,7 +172,7 @@ impl WaParser {
 }
 
 impl Parser for WaParser {
-	fn parse_page(&self, page: &str) -> Result<Vec<Breach>, Box<dyn std::error::Error>> {
+	fn parse_page(&self, page: &str) -> Result<(Vec<Breach>, Option<String>), Box<dyn std::error::Error>> {
 		WaParser::parse_body(page)
 	}
 }
