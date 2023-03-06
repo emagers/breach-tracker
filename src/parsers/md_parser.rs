@@ -90,75 +90,115 @@ impl MdParser {
 	}
 
 	fn parse_leaked_info(text: &str) -> Vec<ClassificationType> {
-		let cleaned = text.replace("and/or", ",").replace("and", ",").replace(".", "").replace("&quot;", "");
+		let cleaned = text.replace("and/or", ",").replace("and", ",").replace(".", "").replace("&quot;", "").replace("\"", "");
 		let mut classifications = vec!();
 		let mut class_it = cleaned.split(",");
 
 		while let Some(class) = class_it.next() {
 			let trimmed = class.trim().to_lowercase();
-			match trimmed.as_str() {
-				"name" => classifications.push(ClassificationType::Name(Sensitivity::Low)),
-				"full name" => classifications.push(ClassificationType::Name(Sensitivity::Low)),
-				"last names" => classifications.push(ClassificationType::Name(Sensitivity::Low)),
-				"first" => classifications.push(ClassificationType::Name(Sensitivity::Low)),
-				"names" => classifications.push(ClassificationType::Name(Sensitivity::Low)),
-				"password" => classifications.push(ClassificationType::Password(Sensitivity::High)),
-				"username or email address" => classifications.push(ClassificationType::Username(Sensitivity::Medium)),
-				"date of birth" => classifications.push(ClassificationType::DateOfBirth(Sensitivity::Medium)),
-				"date of births" => classifications.push(ClassificationType::DateOfBirth(Sensitivity::Medium)),
-				"dates of birth" => classifications.push(ClassificationType::DateOfBirth(Sensitivity::Medium)),
-				"dob" => classifications.push(ClassificationType::DateOfBirth(Sensitivity::Medium)),
-				"social security number" => classifications.push(ClassificationType::SocialSecurity(Sensitivity::High)),
-				"social security numbers" => classifications.push(ClassificationType::SocialSecurity(Sensitivity::High)),
-				"the last 4 digits of the resident&#39;s social security number" => classifications.push(ClassificationType::SocialSecurity(Sensitivity::High)),
-				"ssn" => classifications.push(ClassificationType::SocialSecurity(Sensitivity::High)),
-				"ssns" => classifications.push(ClassificationType::SocialSecurity(Sensitivity::High)),
-				"ss #" => classifications.push(ClassificationType::SocialSecurity(Sensitivity::High)),
-				"ssn&#39;s" => classifications.push(ClassificationType::SocialSecurity(Sensitivity::High)),
-				"passport" => classifications.push(ClassificationType::PassportNumber(Sensitivity::High)),
-				"passport number" => classifications.push(ClassificationType::PassportNumber(Sensitivity::High)),
-				"passport numbers" => classifications.push(ClassificationType::PassportNumber(Sensitivity::High)),
-				"driver&#39;s license" => classifications.push(ClassificationType::DriversLicense(Sensitivity::High)),
-				"driver&#39;s license number" => classifications.push(ClassificationType::DriversLicense(Sensitivity::High)),
-				"driver&#39;s license numbers" => classifications.push(ClassificationType::DriversLicense(Sensitivity::High)),
-				"driver&#39;s license/state id number" => classifications.push(ClassificationType::DriversLicense(Sensitivity::High)),
-				"driver&#39;s license or state identification card number" => classifications.push(ClassificationType::DriversLicense(Sensitivity::High)),
-				"driver&#39;s license or state id number" => classifications.push(ClassificationType::DriversLicense(Sensitivity::High)),
-				"credit card info" => classifications.push(ClassificationType::FinancialInformation(Sensitivity::High)),
-				"payment card info" => classifications.push(ClassificationType::FinancialInformation(Sensitivity::High)),
-				"financial account info" => classifications.push(ClassificationType::FinancialInformation(Sensitivity::High)),
-				"financial account information" => classifications.push(ClassificationType::FinancialInformation(Sensitivity::High)),
-				"financial account number" => classifications.push(ClassificationType::FinancialInformation(Sensitivity::High)),
-				"financial account numbers" => classifications.push(ClassificationType::FinancialInformation(Sensitivity::High)),
-				"financial account numbers with password or routing number" => classifications.push(ClassificationType::BankingInformation(Sensitivity::High)),
-				"bank account numbers" => classifications.push(ClassificationType::BankingInformation(Sensitivity::High)),
-				"direct deposit information" => classifications.push(ClassificationType::BankingInformation(Sensitivity::High)),
-				"medical information" => classifications.push(ClassificationType::MedicalInformation(Sensitivity::High)),
-				"medicare/medicade identification information" => classifications.push(ClassificationType::MedicalInformation(Sensitivity::High)),
-				"medical record numbers" => classifications.push(ClassificationType::MedicalInformation(Sensitivity::High)),
-				"health insurance information" => classifications.push(ClassificationType::HealthInsurancePolicy(Sensitivity::Medium)),
-				"medical or health insurance information" => {
-					classifications.push(ClassificationType::MedicalInformation(Sensitivity::High));
-					classifications.push(ClassificationType::HealthInsurancePolicy(Sensitivity::Medium));
-				},
-				"name and driver's license number" => {
-					classifications.push(ClassificationType::Name(Sensitivity::High));
-					classifications.push(ClassificationType::DriversLicense(Sensitivity::High));
-				},
-				"address" => classifications.push(ClassificationType::Address(Sensitivity::Medium)),
-				"addresses" => classifications.push(ClassificationType::Address(Sensitivity::Medium)),
-				"mailing addresses" => classifications.push(ClassificationType::Address(Sensitivity::Medium)),
-				"email" => classifications.push(ClassificationType::Email(Sensitivity::Low)),
-				"email address" => classifications.push(ClassificationType::Email(Sensitivity::Low)),
-				"emails addresses" => classifications.push(ClassificationType::Email(Sensitivity::Low)),
-				"phone number" => classifications.push(ClassificationType::PhoneNumber(Sensitivity::Medium)),
-				"phone numbers" => classifications.push(ClassificationType::PhoneNumber(Sensitivity::Medium)),
-				"and payer information" => classifications.push(ClassificationType::FinancialInformation(Sensitivity::Medium)),
-				"" => (),
-				_ => {
-					classifications.push(ClassificationType::Unknown(trimmed, Sensitivity::Unknown));
-				}
-			};
+			let mut added = false;
+
+			if trimmed.contains("name") {
+				classifications.push(ClassificationType::Name(Sensitivity::Low));
+				added = true;
+			}
+			else if trimmed.contains("password") {
+				classifications.push(ClassificationType::Password(Sensitivity::High));
+				added = true;
+			}
+			else if trimmed.contains("username") || trimmed.contains("user id") {
+				classifications.push(ClassificationType::Username(Sensitivity::Medium));
+				added = true;
+			}
+			else if (trimmed.contains("date") && trimmed.contains("birth")) ||
+				trimmed.contains("dob")  {
+				classifications.push(ClassificationType::DateOfBirth(Sensitivity::Medium));
+				added = true;
+			}
+			else if trimmed.contains("social security") ||
+				trimmed.contains("ssn") ||
+				trimmed == "ss #" {
+				classifications.push(ClassificationType::SocialSecurity(Sensitivity::High));
+				added = true;
+			}
+			else if trimmed.contains("address") && !trimmed.contains("email") || trimmed.contains("zip code") {
+				classifications.push(ClassificationType::Address(Sensitivity::Medium));
+				added = true;
+			}
+
+			if trimmed.contains("student") && trimmed.contains("id") {
+				classifications.push(ClassificationType::StudentId(Sensitivity::Low));
+				added = true;
+			}
+
+			if trimmed.contains("personal information") || trimmed.contains("race") || trimmed.contains("age") || trimmed.contains("gender") || trimmed.contains("education") || trimmed.contains("marital") || trimmed.contains("demographic") || trimmed.contains("nationality") {
+				classifications.push(ClassificationType::DemographicInformation(Sensitivity::Low));
+				added = true;
+			}
+
+			if trimmed.contains("voter") {
+				classifications.push(ClassificationType::VoterRegistrationNumber(Sensitivity::Low));
+				added = true;
+			}
+
+			if trimmed.contains("employee") || trimmed.contains("employment") || trimmed.contains("employer") || trimmed.contains("work") || trimmed.contains("human resource") {
+				classifications.push(ClassificationType::EmploymentInformation(Sensitivity::Low));
+				added = true;
+			}
+
+			if trimmed.contains("security") && (trimmed.contains("question") || trimmed.contains("code") || trimmed.contains("word")) {
+				classifications.push(ClassificationType::SecurityQuestionOrAnswer(Sensitivity::High));
+				added = true;
+			}
+
+			if trimmed.contains("passport") {
+				classifications.push(ClassificationType::PassportNumber(Sensitivity::High));
+				added = true;
+			}
+
+			if trimmed.contains("driver") && trimmed.contains("license") {
+				classifications.push(ClassificationType::DriversLicense(Sensitivity::High));
+				added = true;
+			}
+
+			if (trimmed.contains("state") || trimmed.contains("government") || trimmed.contains("federal")) && trimmed.contains("id") {
+				classifications.push(ClassificationType::StateId(Sensitivity::High));
+				added = true;
+			}
+
+			if trimmed.contains("email") {
+				classifications.push(ClassificationType::Email(Sensitivity::Low));
+				added = true;
+			}
+
+			if trimmed.contains("phone number") || trimmed.contains("tele #") || trimmed.contains("tel num") {
+				classifications.push(ClassificationType::PhoneNumber(Sensitivity::Low));
+				added = true;
+			}
+
+			if trimmed.contains("w-9") || trimmed.contains("pay") || trimmed.contains("401k") || trimmed.contains("dependent") || trimmed.contains("beneficiar") || trimmed.contains("withholding") || trimmed.contains("1095") || trimmed.contains("1098") || trimmed.contains("tin") || trimmed.contains("w4") || trimmed.contains("billed") || trimmed.contains("billing") || trimmed.contains("income") || trimmed.contains("payroll") || trimmed.contains("w2") || trimmed.contains("w-2") || trimmed.contains("1099") || trimmed.contains("compensation") || trimmed.contains("charges") || trimmed.contains("donation") || trimmed.contains("purchase") || trimmed.contains("transaction") || trimmed.contains("financial") || trimmed.contains("payer information") || trimmed.contains("loan") || trimmed.contains("tax") {
+				classifications.push(ClassificationType::FinancialInformation(Sensitivity::High));
+				added = true;
+			}
+
+			if trimmed.contains("pin") || trimmed.contains("routing") || trimmed.contains("direct deposit") || trimmed.contains("bank") || trimmed.contains("debit") || trimmed.contains("payment card") || trimmed.contains("credit") || trimmed.contains("cvv") || trimmed.contains("benefit") || trimmed.contains("wage") || trimmed.contains("card number") {
+				classifications.push(ClassificationType::BankingInformation(Sensitivity::High));
+				added = true;
+			}
+
+			if trimmed.contains("immunization") || trimmed.contains("medication") || trimmed.contains("drugs") || trimmed.contains("provider") || trimmed.contains("procedure") || trimmed.contains("illness") || trimmed.contains("injury") || trimmed.contains("hipaa") || trimmed.contains("vaccination") || trimmed.contains("prescription") || trimmed.contains("dentist") || trimmed.contains("diagnosis") || trimmed.contains("physician") || trimmed.contains("medical") || trimmed.contains("treatment") || trimmed.contains("health info") || trimmed.contains("patient") || trimmed.contains("clinic") || trimmed.contains("visit") || trimmed.contains("dental") || trimmed.contains("vision") {
+				classifications.push(ClassificationType::MedicalInformation(Sensitivity::High));
+				added = true;
+			}
+
+			if trimmed.contains("deductible") || trimmed.contains("group plan") || trimmed.contains("health insurance") || trimmed.contains("medicare") || trimmed.contains("medicade") || trimmed.contains("medicaid") || trimmed.contains("insurance") || trimmed.contains("health plan") {
+				classifications.push(ClassificationType::HealthInsurancePolicy(Sensitivity::High));
+				added = true;
+			}
+
+			if !added {
+				classifications.push(ClassificationType::Unknown(trimmed, Sensitivity::Unknown));
+			}
 		}
 
 		classifications

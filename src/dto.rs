@@ -108,6 +108,9 @@ pub enum ClassificationType {
 	BiometricData(Sensitivity),
 	PhoneNumber(Sensitivity),
 	Address(Sensitivity),
+	DemographicInformation(Sensitivity),
+	VoterRegistrationNumber(Sensitivity),
+	EmploymentInformation(Sensitivity),
 }
 
 impl From<(&crate::datamodels::ClassificationType, &str)> for ClassificationType {
@@ -132,6 +135,9 @@ impl From<(&crate::datamodels::ClassificationType, &str)> for ClassificationType
 			crate::datamodels::ClassificationType::BiometricData => ClassificationType::BiometricData(Sensitivity::High),
 			crate::datamodels::ClassificationType::PhoneNumber => ClassificationType::PhoneNumber(Sensitivity::Medium),
 			crate::datamodels::ClassificationType::Address => ClassificationType::Address(Sensitivity::Medium),
+			crate::datamodels::ClassificationType::DemographicInformation => ClassificationType::BiometricData(Sensitivity::Low),
+			crate::datamodels::ClassificationType::VoterRegistrationNumber => ClassificationType::PhoneNumber(Sensitivity::Low),
+			crate::datamodels::ClassificationType::EmploymentInformation => ClassificationType::Address(Sensitivity::Low),
 		}
 	}
 }
@@ -158,6 +164,9 @@ impl From<&ClassificationType> for crate::datamodels::ClassificationType {
 			ClassificationType::BiometricData(_) => crate::datamodels::ClassificationType::BiometricData,
 			ClassificationType::PhoneNumber(_) => crate::datamodels::ClassificationType::PhoneNumber,
 			ClassificationType::Address(_) => crate::datamodels::ClassificationType::Address,
+			ClassificationType::DemographicInformation(_) => crate::datamodels::ClassificationType::DemographicInformation,
+			ClassificationType::VoterRegistrationNumber(_) => crate::datamodels::ClassificationType::VoterRegistrationNumber,
+			ClassificationType::EmploymentInformation(_) => crate::datamodels::ClassificationType::EmploymentInformation,
 		}
 	}
 }

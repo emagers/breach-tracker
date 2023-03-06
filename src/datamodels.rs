@@ -125,6 +125,9 @@ pub enum ClassificationType {
 	BiometricData = 16,
 	PhoneNumber = 17,
 	Address = 18,
+	DemographicInformation = 19,
+	VoterRegistrationNumber = 20,
+	EmploymentInformation = 21,
 }
 
 impl<DB> ToSql<Integer, DB> for ClassificationType
@@ -153,6 +156,9 @@ where
 			ClassificationType::BiometricData => 16.to_sql(out),
 			ClassificationType::PhoneNumber => 17.to_sql(out),
 			ClassificationType::Address => 18.to_sql(out),
+			ClassificationType::DemographicInformation => 19.to_sql(out),
+			ClassificationType::VoterRegistrationNumber => 20.to_sql(out),
+			ClassificationType::EmploymentInformation => 21.to_sql(out),
 		}
 	}
 }
@@ -183,6 +189,9 @@ where
 			16 => Ok(ClassificationType::BiometricData),
 			17 => Ok(ClassificationType::PhoneNumber),
 			18 => Ok(ClassificationType::Address),
+			19 => Ok(ClassificationType::DemographicInformation),
+			20 => Ok(ClassificationType::VoterRegistrationNumber),
+			21 => Ok(ClassificationType::EmploymentInformation),
 			x => Err(format!("Unrecognized variant {}", x).into()),
 		}
 	}
