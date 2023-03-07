@@ -104,6 +104,7 @@ impl CaParser {
 			date_of_breach: dob.clone(),
 			organization_name: organization_name.unwrap().to_string(),
 			affected_count: None,
+			affected_count_local: None,
 			loc: State::CA,
 			link: link.clone(),
 			breach_type: BreachType::Unknown,

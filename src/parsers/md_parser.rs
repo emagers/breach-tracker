@@ -44,10 +44,11 @@ impl MdParser {
 					date_reported: NaiveDateTime::parse_from_str("01/01/0001 00:00:00 -00:00", "%m/%d/%Y %H:%M:%S %z").unwrap(),
 					date_of_breach: None,
 					organization_name: record.case_x0020_title.clone(),
-					affected_count: match record.no_x0020_of_x0020_md_x0020_residents.trim().replace(",", "").parse::<i32>() {
+					affected_count_local: match record.no_x0020_of_x0020_md_x0020_residents.trim().replace(",", "").parse::<i32>() {
 						Ok(c) => Some(c),
 						_ => None
 					},
+					affected_count: None,
 					loc: State::MD,
 					breach_type: MdParser::parse_breach_type(&record.how_x0020_breach_x0020_occurred),
 					link: Some(format!("{}{}", FILE_BASE_URI, record.file_ref.replace("\u{002f}", "/"))),
@@ -61,10 +62,11 @@ impl MdParser {
 				date_reported: NaiveDateTime::parse_from_str(&format!("{} 00:00:00 -00:00", record.date_x0020_received.replace("\u{002f}", "/")), "%m/%d/%Y %H:%M:%S %z").unwrap(), // in mm/dd/yyyy format, but / are \u002f
 				date_of_breach: None,
 				organization_name: record.case_x0020_title.clone(),
-				affected_count: match record.no_x0020_of_x0020_md_x0020_residents.trim().replace(",", "").parse::<i32>() {
+				affected_count_local: match record.no_x0020_of_x0020_md_x0020_residents.trim().replace(",", "").parse::<i32>() {
 					Ok(c) => Some(c),
 					_ => None
 				},
+				affected_count: None,
 				loc: State::MD,
 				breach_type: MdParser::parse_breach_type(&record.how_x0020_breach_x0020_occurred),
 				link: Some(format!("{}{}", FILE_BASE_URI, record.file_ref.replace("\u{002f}", "/"))),

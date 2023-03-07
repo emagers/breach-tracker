@@ -116,6 +116,7 @@ impl OrParser {
 			date_reported: date_reported.unwrap(),
 			date_of_breach: dob.clone(),
 			organization_name: organization_name.unwrap().to_string(),
+			affected_count_local: None,
 			affected_count: None,
 			loc: State::OR,
 			link: link.clone(),

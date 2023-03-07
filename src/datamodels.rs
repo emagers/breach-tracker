@@ -225,6 +225,7 @@ pub struct BreachData {
 	pub loc: State,
 	pub link: Option<String>,
 	pub breach_type: BreachType,
+	pub affected_count_local: Option<i32>,
 }
 
 #[derive(Debug, Insertable, Clone)]
@@ -237,6 +238,7 @@ pub struct NewBreachData {
 	pub loc: State,
 	pub link: Option<String>,
 	pub breach_type: BreachType,
+	pub affected_count_local: Option<i32>,
 }
 
 #[derive(Queryable, Debug, PartialEq, Identifiable, Copy, Clone)]
